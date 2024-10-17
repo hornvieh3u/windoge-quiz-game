@@ -1,0 +1,26 @@
+{
+  "canisters": {
+    "mIRC-trivia-quiz-backend": {
+      "main": "src/mIRC-trivia-quiz-backend/main.mo",
+      "type": "motoko"
+    },
+    "mIRC-trivia-quiz-frontend": {
+      "dependencies": [
+        "mIRC-trivia-quiz-backend"
+      ],
+      "source": [
+        "src/mIRC-trivia-quiz-frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "mIRC-trivia-quiz-frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
