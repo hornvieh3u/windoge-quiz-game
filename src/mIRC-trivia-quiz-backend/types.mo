@@ -10,6 +10,7 @@ module {
     public type PlayerId = Int;
     public type PlayerName = Text;
     public type PlayerStatus = Nat;
+    public type QATime = Int;
 
     // several types
     public type TriviaLog = {
@@ -26,7 +27,6 @@ module {
         score: Nat;
         rounds_played: Nat;
         max_rounds: Nat;
-        trivia_logs: [?TriviaLog];
     };
     public type QA = {
         id: QAId;
@@ -38,5 +38,6 @@ module {
     public type TriviaGame = {
         var currentQAId: QAId;
         var timeLimit: Nat;
+        var startTime: Int;
     }
 }
