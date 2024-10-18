@@ -11,6 +11,7 @@ module {
     public type PlayerName = Text;
     public type PlayerStatus = Nat;
     public type QATime = Int;
+    public type TimerId = Nat;
 
     // several types
     public type TriviaLog = {
@@ -22,7 +23,6 @@ module {
         id: PlayerId;
         name: PlayerName;
         password: Text;
-        status: PlayerStatus;
         principal: ?Principal;
         score: Nat;
         rounds_played: Nat;
@@ -39,5 +39,7 @@ module {
         var currentQAId: QAId;
         var timeLimit: Nat;
         var startTime: Int;
+        var status: Nat;
+        var timerId: TimerId;
     }
 }

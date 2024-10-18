@@ -1,6 +1,6 @@
 module {
 
-    public let PSTATUS = {
+    public let GAME_STATUS = {
         ACTIVE = 0;
         INACTIVE = 1;
         STOP = 2;
@@ -13,7 +13,8 @@ module {
     };
 
     public let CONFIG = {
-        TIME_LIMIT = 5; // seconds
+        TIME_LIMIT = 30; // seconds
+        ROUND_SCORE = 100;
     }
 
 }
