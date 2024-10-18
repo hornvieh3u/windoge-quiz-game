@@ -26,7 +26,7 @@ module {
         principal: ?Principal;
         score: Nat;
         rounds_played: Nat;
-        max_rounds: Nat;
+        rounds_passed: Nat;
     };
     public type QA = {
         id: QAId;

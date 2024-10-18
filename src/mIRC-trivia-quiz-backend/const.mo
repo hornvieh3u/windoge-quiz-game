@@ -8,8 +8,8 @@ module {
 
     public let QTYPES = {
         SINGLE = 0;
-        MULTIPLE = 1;
-        SELECT = 2;
+        SELECT = 1;
+        MULTIPLE = 2;
     };
 
     public let CONFIG = {

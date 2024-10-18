@@ -1,20 +1,22 @@
-import Const "const";
-import Types "types";
-import RBTree "mo:base/RBTree";
 import Time "mo:base/Time";
 import Timer "mo:base/Timer";
 import Text "mo:base/Text";
 import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import Iter "mo:base/Iter";
+import Nat "mo:base/Nat";
+
+import Const "const";
+import Types "types";
+import Utiles "utiles";
 import StableRbTree "StableRBTree";
 
 actor Trivia {
-    var players = RBTree.RBTree<Types.PlayerName, Types.Player>(Text.compare);
+    stable var players = StableRbTree.init<Types.PlayerName, Types.Player>();
     stable var QAs = StableRbTree.init<Types.QAId, Types.QA>();
     // var trivia_logs = RBTree.RBTree<Types.QATime, [Types.TriviaLog]>(Int.compare);
 
-    var game: Types.TriviaGame = {
+    stable var game: Types.TriviaGame = {
         var currentQAId = -1;
         var timeLimit = Const.CONFIG.TIME_LIMIT;
         var startTime = 0;
@@ -23,37 +25,38 @@ actor Trivia {
     };
 
     public func start() : async () {
+        Debug.print("Here we start");
         game.timerId := Timer.recurringTimer<system>(#seconds (game.timeLimit), idle);
         game.status := Const.GAME_STATUS.ACTIVE;
     };
 
     public func stop() : async () {
+        Debug.print("Here we stop");
         Timer.cancelTimer(game.timerId);
         game.status := Const.GAME_STATUS.STOP;
     };
 
-
     public func sign_up(name: Text, password: Text) : async Bool {
-        var prevPlayer = players.get(name);
+        var prevPlayer = StableRbTree.get(players, Text.compare, name);
         if (prevPlayer != null) return false;
 
-        var player = {
+        var player: Types.Player = {
             id = Time.now();
             name;
             password;
             score = 0;
             rounds_played = 0;
-            max_rounds = 0;
+            rounds_passed = 0;
             principal = null;
         };
 
-        players.put(name, player);
+        players := StableRbTree.put(players, Text.compare, name, player);
 
         return true;
     };
 
     public func sign_in(name: Text, password: Text) : async (Bool, ?Types.Player) {
-        switch(players.get(name)) {
+        switch(StableRbTree.get(players, Text.compare, name)) {
             case null (false, null);
             case (?player) {
                 if (player.password != password) {
@@ -66,6 +69,11 @@ actor Trivia {
     };
 
     public func add_QA(qType: Types.QType, question: Text, answer: Text, hint: Text) : async Int {
+
+        for (entry in StableRbTree.entries(QAs)) {
+            if (entry.1.question == question) return 0;
+        };
+
         var newQAId: Types.QAId = Time.now();
         var newQA: Types.QA = {
             id = newQAId;
@@ -91,8 +99,25 @@ actor Trivia {
         switch(StableRbTree.get(QAs, Int.compare, game.currentQAId)) {
             case null false;
             case (?currentQA) {
-                var score = await score_answer(currentQA.qType, currentQA.answer, answer);
-                return true;
+                switch(StableRbTree.get(players, Text.compare, playerName)) {
+                    case null false;
+                    case (?player) {
+                        var score = await score_answer(currentQA.qType, currentQA.answer, answer);
+                        var updatedPlayer: Types.Player = {
+                            id = player.id;
+                            name = player.name;
+                            password = player.password;
+                            score = player.score + score;
+                            rounds_played = player.rounds_played + 1;
+                            rounds_passed = player.rounds_passed + (if (score > 0) 1 else 0);
+                            principal = player.principal;
+                        };
+                        players := StableRbTree.delete(players, Text.compare, playerName);
+                        players := StableRbTree.put(players, Text.compare, playerName, updatedPlayer);
+
+                        return score > 0;
+                    }
+                }
             }
         }
     };
@@ -103,7 +128,7 @@ actor Trivia {
         await start();
     };
 
-    // deprecated
+    // test mode
     public func get_QA(QAId: Types.QAId) : async ?Types.QA {
         StableRbTree.get(QAs, Int.compare, QAId);
     };
@@ -116,11 +141,15 @@ actor Trivia {
 
         return text # " all done!";
     };
-    // deprecated
+
+    public func set_current_QAId(QAId: Types.QAId) : async () {
+        game.currentQAId := QAId;
+    };
+    // test mode
 
     private func validate_player(playerId: Types.PlayerId, playerName: Types.PlayerName) : async Bool {
 
-        switch(players.get(playerName)) {
+        switch(StableRbTree.get(players, Text.compare, playerName)) {
             case null return false;
             case (?player) {
                 if (player.id != playerId) return false;
@@ -131,29 +160,27 @@ actor Trivia {
     };
 
     private func score_answer(qType: Types.QType, qAnswer: Text, pAnswer: Text) : async Nat {
-
         if ((qType == Const.QTYPES.SINGLE or qType == Const.QTYPES.SELECT) and qAnswer == pAnswer) {
             return Const.CONFIG.ROUND_SCORE;
         };
 
         if (qType == Const.QTYPES.MULTIPLE) {
             var splitChar: Text.Pattern = #char ',';
-            var qAnswers: Iter.Iter<Text> = Text.split(qAnswer, splitChar);
-            var pAnswers: Iter.Iter<Text> = Text.split(pAnswer, splitChar);
+            var qAnswers: [Text] = Utiles.array_unique(Iter.toArray(Text.split(qAnswer, splitChar)));
+            var pAnswers: [Text] = Utiles.array_unique(Iter.toArray(Text.split(pAnswer, splitChar)));
 
-            Iter.iterate(qAnswers, func (qItem: Text, _i: Nat) {
-                Debug.print(qItem);
-            });
-            Iter.iterate(pAnswers, func (pItem: Text, _i: Nat) {
-                Debug.print(pItem);
-            });
+            var total = 0;
+            var part = 0;
+
+            for(qAnswer in qAnswers.vals()) {
+                total += 1;
+                if (Utiles.array_include(pAnswers, qAnswer)) part += 1;
+            };
+
+            return Const.CONFIG.ROUND_SCORE * part / total;
         };
 
         return 0;
-    };
-
-    private func update_player() : async () {
-
     };
 
     private func idle() : async () {
@@ -173,5 +200,7 @@ actor Trivia {
 
         await stop();
         game.currentQAId := -1;
+
+        Debug.print("Here we finished");
     };
 }
