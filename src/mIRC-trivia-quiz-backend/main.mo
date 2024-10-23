@@ -27,6 +27,9 @@ actor Trivia {
 
     public func start() : async () {
         Debug.print("Here we start");
+        Timer.cancelTimer(game.timerId);
+
+        await idle();
         game.timerId := Timer.recurringTimer<system>(#seconds (game.timeLimit), idle);
         game.status := Const.GAME_STATUS.ACTIVE;
     };
@@ -92,6 +95,10 @@ actor Trivia {
         StableRbTree.get(QAs, Int.compare, game.currentQAId);
     };
 
+    public func get_current_logs() : async (Int, ?[Types.Log]) {
+        (game.startTime, StableRbTree.get(logs, Int.compare, game.startTime));
+    };
+
     public func check_answer(playerId: Types.PlayerId, playerName: Types.PlayerName, answer: Text) : async (Bool, Nat) {
         // validate user
         if (not (await validate_player(playerId, playerName))) return (false, 0);
@@ -119,7 +126,7 @@ actor Trivia {
                         let (_, updatedPlayers) = StableRbTree.replace(players, Text.compare, playerName, updatedPlayer);
                         players := updatedPlayers;
 
-                        await save_log(player.id, currentQA.id, answer, score);
+                        await save_log(player.id, player.name, currentQA.id, answer, score);
 
                         (true, score);
                     }
@@ -159,7 +166,7 @@ actor Trivia {
             if (game.currentQAId == -1 or isNext) {
                 game.currentQAId := entry.0;
                 game.startTime := Time.now();
-                Debug.print(Int.toText(game.currentQAId));
+                Debug.print(Int.toText(game.startTime) # ": " # Int.toText(game.currentQAId));
                 return;
             };
 
@@ -222,17 +229,22 @@ actor Trivia {
         return 0;
     };
 
-    private func save_log(playerId: Types.PlayerId, QAId: Types.QAId, answer: Text, score: Nat) : async () {
+    private func save_log(playerId: Types.PlayerId, playerName: Types.PlayerName, QAId: Types.QAId, answer: Text, score: Nat) : async () {
+
+        var newLog: Types.Log = {
+            logPlayerId = playerId;
+            logPlayerName = playerName;
+            logQAId = QAId;
+            logAnswer = answer;
+            logScore = score;
+            logTime = Time.now();
+        };
 
         switch(StableRbTree.get(logs, Int.compare, game.startTime)) {
-            case null return;
+            case null {
+                logs := StableRbTree.put(logs, Int.compare, game.startTime, [newLog]);
+            };
             case (?prevLogs) {
-                var newLog: Types.Log = {
-                    logPlayerId = playerId;
-                    logQAId = QAId;
-                    logAnswer = answer;
-                    logScore = score;
-                };
                 var newLogs = Array.append(prevLogs, [newLog]);
                 let (_, updatedLogs) = StableRbTree.replace(logs, Int.compare, game.startTime, newLogs);
                 logs := updatedLogs;

@@ -13,7 +13,7 @@ module {
     };
 
     public let CONFIG = {
-        TIME_LIMIT = 30; // seconds
+        TIME_LIMIT = 100; // seconds
         ROUND_SCORE = 100;
     }
 

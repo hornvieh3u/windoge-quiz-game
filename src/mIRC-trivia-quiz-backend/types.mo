@@ -16,9 +16,11 @@ module {
     // several types
     public type Log = {
         logPlayerId: PlayerId;
+        logPlayerName: PlayerName;
         logQAId: QAId;
         logAnswer: Text;
         logScore: Nat;
+        logTime: Int;
     };
     public type Player = {
         id: PlayerId;
