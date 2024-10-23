@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { mIRC_trivia_quiz_backend } from 'declarations/mIRC-trivia-quiz-backend';
 import toast from 'react-hot-toast';
 import { storage } from '../utils';
@@ -14,6 +13,7 @@ function Content() {
   const [qAnswer, setQAnswer] = useState("");
   const [hint, setHint] = useState("");
   const [isStarted, setIsStarted] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   const contentRef = useRef(null);
 
@@ -24,11 +24,14 @@ function Content() {
         QAs.indexOf(answer) !== -1
     ) return;
 
+    setBlocking(true);
     const userInfo = storage.get();
     let [result, score] = await mIRC_trivia_quiz_backend.check_answer(BigInt(userInfo.id), userInfo.name, answer);
     console.log(result, score);
+    
     setAnswer("");
     contentRef.current?.scrollTo(0, contentRef.current?.scrollHeight + 30);
+    setBlocking(false);
   }
 
   const addQA = async () => {
@@ -68,7 +71,7 @@ function Content() {
       if (logs[0]) {
         for (var i = 0; i < logs[0].length; i++) {
           let time = new Date(parseInt(logs[0][i].logTime / BigInt(1000000)));
-          newQAs.push({ text: `[${time.toLocaleTimeString()}] <${logs[0][i].logPlayerName}> ${logs[0][i].logAnswer}`, color: 'black' });
+          newQAs.push({ text: `[${time.toLocaleTimeString()}] <${logs[0][i].logPlayerName}> ${logs[0][i].logAnswer} (score: ${logs[0][i].logScore})`, color: 'black' });
         }
       }
 
@@ -90,7 +93,15 @@ function Content() {
     <div className='flex h-dvh justify-center'>
       <div className='flex flex-col-reverse w-9/12 p-5 gap-5'>
         <div className='flex flex-row gap-5'>
-          <input placeholder={isStarted ? 'Please enter your answer.' : 'Quiz game is not started!'} disabled={!isStarted} onKeyDown={handleKeyDown} onChange={e => setAnswer(e.target.value)} value={answer} className='w-full px-3 py-1 border rounded border-blue-200 hover:border-blue-700 focus:outline-none focus:border-blue-700 active:border-blue-700' />
+          {
+            blocking && (
+              <svg className="animate-spin absolute h-5 w-5 mt-[10px] ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="gray" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="gray" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            )
+          }
+          <input placeholder={isStarted ? 'Please enter your answer.' : 'Quiz game is not started!'} disabled={!isStarted || blocking} onKeyDown={handleKeyDown} onChange={e => setAnswer(e.target.value)} value={answer} className={`w-full px-3 py-1 ${blocking ? 'pl-8' : ''} border rounded border-blue-200 hover:border-blue-700 focus:outline-none focus:border-blue-700 active:border-blue-700`} />
           <button className='w-32 bg-blue-500 rounded text-white' onClick={() => setIsOpenModal(true)}>Add QA</button>
         </div>
         <div className='overflow-hidden' ref={contentRef}>

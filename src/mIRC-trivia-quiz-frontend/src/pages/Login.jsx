@@ -50,7 +50,7 @@ function Login() {
           </div>
           <div className='flex flex-row'>
             <label htmlFor='password' className='w-32 text-right pr-2 content-center'>password: </label>
-            <input id='password' onChange={(e) => setPasswd(e.target.value)} value={passwd} className='w-64 px-3 py-1 border rounded hover:border-blue-700 focus:outline-none focus:border-blue-700 active:border-blue-700' />
+            <input type='password' id='password' onChange={(e) => setPasswd(e.target.value)} value={passwd} className='w-64 px-3 py-1 border rounded hover:border-blue-700 focus:outline-none focus:border-blue-700 active:border-blue-700' />
           </div>
           <div className='text-right'>
             <button className="bg-blue-700 rounded px-4 py-2 text-white w-40" onClick={signIn}>
