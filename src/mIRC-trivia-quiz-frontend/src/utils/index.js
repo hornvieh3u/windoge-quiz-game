@@ -8,3 +8,8 @@ export const storage = function() {
         get: () => sessionStorage.getItem(STORAGE_KEY) && JSON.parse(sessionStorage.getItem(STORAGE_KEY))
     }
 }();
+
+export const formatPrincipal = principal => {
+  const principalStr = principal.toString();
+  return `${principalStr.substring(0, 5)}...${principalStr.substring(principalStr.length - 5, principalStr.length)}`;
+}

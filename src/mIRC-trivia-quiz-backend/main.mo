@@ -6,6 +6,7 @@ import Debug "mo:base/Debug";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
 import Array "mo:base/Array";
+import Principal "mo:base/Principal";
 
 import Const "const";
 import Types "types";
@@ -16,6 +17,7 @@ actor Trivia {
     stable var players = StableRbTree.init<Types.PlayerName, Types.Player>();
     stable var QAs = StableRbTree.init<Types.QAId, Types.QA>();
     stable var logs = StableRbTree.init<Types.QTime, [Types.Log]>();
+    stable var indexes = StableRbTree.init<Text, Types.PlayerName>();
 
     stable var game: Types.TriviaGame = {
         var currentQAId = -1;
@@ -40,7 +42,7 @@ actor Trivia {
         game.status := Const.GAME_STATUS.STOP;
     };
 
-    public func sign_up(name: Text, password: Text) : async Bool {
+    public func sign_up(name: Text, password: Text, principal: Text) : async Bool {
         var prevPlayer = StableRbTree.get(players, Text.compare, name);
         if (prevPlayer != null) return false;
 
@@ -51,10 +53,11 @@ actor Trivia {
             score = 0;
             rounds_played = 0;
             rounds_passed = 0;
-            principal = null;
+            principal = ?Principal.fromText(principal);
         };
 
         players := StableRbTree.put(players, Text.compare, name, player);
+        indexes := StableRbTree.put(indexes, Text.compare, principal, player.name);
 
         return true;
     };
@@ -68,6 +71,15 @@ actor Trivia {
                 };
 
                 (true, ?player);
+            }
+        }
+    };
+
+    public func sign_in_with_wallet(principal: Text) : async ?Types.Player {
+        switch(StableRbTree.get(indexes, Text.compare, principal)) {
+            case null null;
+            case (?playerName) {
+                StableRbTree.get(players, Text.compare, playerName)
             }
         }
     };
